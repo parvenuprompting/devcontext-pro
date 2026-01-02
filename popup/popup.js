@@ -74,7 +74,7 @@ class PopupController {
       this.updateStatus('Activating element selector...', 'processing');
 
       const tab = await this.getActiveTab();
-      const prefs = await chrome.storage.sync.get(['excludeComments', 'autoFormat', 'removeScripts']);
+      const prefs = await chrome.storage.sync.get(['excludeComments', 'autoFormat', 'removeScripts', 'smartTrimTailwind']);
 
       await chrome.tabs.sendMessage(tab.id, {
         action: 'startElementSelection',
@@ -85,11 +85,14 @@ class PopupController {
 
       setTimeout(() => {
         window.close();
-      }, 1000);
+      }, 800);
 
     } catch (error) {
       console.error('Error in scrapeComponent:', error);
-      this.updateStatus('Error: ' + error.message, 'error');
+      // Don't show error if it's just a connection issue from popup closing
+      if (!error.message.includes('Receiving end does not exist')) {
+        this.updateStatus('Error: ' + error.message, 'error');
+      }
     }
   }
 
@@ -98,7 +101,7 @@ class PopupController {
       this.updateStatus('Cleaning DOM...', 'processing');
 
       const tab = await this.getActiveTab();
-      const prefs = await chrome.storage.sync.get(['excludeComments', 'removeScripts']);
+      const prefs = await chrome.storage.sync.get(['excludeComments', 'removeScripts', 'smartTrimTailwind', 'autoFormat']);
 
       const response = await chrome.tabs.sendMessage(tab.id, {
         action: 'cleanDOM',
