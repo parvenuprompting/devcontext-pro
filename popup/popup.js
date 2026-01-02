@@ -74,25 +74,35 @@ class PopupController {
       this.updateStatus('Activating element selector...', 'processing');
 
       const tab = await this.getActiveTab();
+
+      // Check if we can run on this page
+      if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:')) {
+        throw new Error('Selection is not allowed on this system page. Try a normal website.');
+      }
+
       const prefs = await chrome.storage.sync.get(['excludeComments', 'autoFormat', 'removeScripts', 'smartTrimTailwind']);
 
-      await chrome.tabs.sendMessage(tab.id, {
-        action: 'startElementSelection',
-        preferences: prefs
-      });
+      try {
+        await chrome.tabs.sendMessage(tab.id, {
+          action: 'startElementSelection',
+          preferences: prefs
+        });
 
-      this.updateStatus('Click on any element to scrape', 'processing');
+        this.updateStatus('Click on any element to scrape', 'processing');
 
-      setTimeout(() => {
-        window.close();
-      }, 800);
+        setTimeout(() => {
+          window.close();
+        }, 800);
+      } catch (e) {
+        if (e.message.includes('Receiving end does not exist')) {
+          throw new Error('Content script not loaded. Refresh the page and try again.');
+        }
+        throw e;
+      }
 
     } catch (error) {
       console.error('Error in scrapeComponent:', error);
-      // Don't show error if it's just a connection issue from popup closing
-      if (!error.message.includes('Receiving end does not exist')) {
-        this.updateStatus('Error: ' + error.message, 'error');
-      }
+      this.updateStatus(error.message, 'error');
     }
   }
 
