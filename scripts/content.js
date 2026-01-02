@@ -122,12 +122,17 @@ class DevContextPro {
             clone.querySelectorAll('script, style, noscript').forEach(el => el.remove());
 
             // Remove complex SVG paths to reduce size
-            clone.querySelectorAll('svg path').forEach(path => {
-                const d = path.getAttribute('d');
-                if (d && d.length > 100) {
-                    path.remove();
-                }
-            });
+            try {
+                clone.querySelectorAll('svg path').forEach(path => {
+                    const d = path.getAttribute('d');
+                    if (d && d.length > 100) {
+                        path.remove();
+                    }
+                });
+            } catch (e) {
+                // Silently skip SVG path errors
+                console.log('SVG path processing skipped:', e.message);
+            }
         }
 
         if (this.preferences.excludeComments) {
