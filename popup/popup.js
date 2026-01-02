@@ -7,7 +7,6 @@ class PopupController {
   init() {
     this.loadPreferences();
     this.attachEventListeners();
-    this.setupKeyboardShortcuts();
   }
 
   attachEventListeners() {
@@ -21,15 +20,7 @@ class PopupController {
     document.getElementById('smartTrimTailwind').addEventListener('change', (e) => this.savePreference('smartTrimTailwind', e.target.checked));
   }
 
-  setupKeyboardShortcuts() {
-    document.addEventListener('keydown', (e) => {
-      // Alt+S to activate scrape component
-      if (e.altKey && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        this.handleScrapeComponent();
-      }
-    });
-  }
+
 
   async loadPreferences() {
     const defaults = {
