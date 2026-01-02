@@ -1,3 +1,7 @@
+/**
+ * DevContext Pro v1.3 - Background Service Worker
+ */
+
 class BackgroundService {
     constructor() {
         this.init();
@@ -23,10 +27,18 @@ class BackgroundService {
 
     async setupDefaultPreferences() {
         const defaults = {
+            // Original preferences
             excludeComments: true,
             autoFormat: true,
             removeScripts: true,
-            smartTrimTailwind: true
+            smartTrimTailwind: true,
+            // v1.3 new preferences
+            assetPlaceholders: true,
+            preserveAriaData: true,
+            includeTailwindConfig: false,
+            inferComponentNames: true,
+            aiProvider: 'gemini',
+            customPrompts: []
         };
 
         const existing = await chrome.storage.sync.get(Object.keys(defaults));
@@ -45,10 +57,12 @@ class BackgroundService {
 
     handleInstall(details) {
         if (details.reason === 'install') {
-            console.log('DevContext Pro installed successfully');
+            console.log('DevContext Pro v1.3 installed successfully');
             this.setupDefaultPreferences();
         } else if (details.reason === 'update') {
             console.log('DevContext Pro updated to version', chrome.runtime.getManifest().version);
+            // Ensure new v1.3 preferences are set for existing users
+            this.setupDefaultPreferences();
         }
     }
 
@@ -62,34 +76,43 @@ class BackgroundService {
                 this.retrieveTemporaryData(request.key, sendResponse);
                 break;
 
+            case 'openAITab':
+                this.openAITab(request.provider, request.context, sendResponse);
+                break;
+
             default:
                 sendResponse({ success: false, error: 'Unknown action' });
         }
     }
 
     async handleCommand(command) {
-        if (command === 'activate-scraper') {
-            try {
-                // Get the active tab
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-                // Check if we can run on this page
-                if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:')) {
-                    console.log('Cannot activate scraper on this page');
-                    return;
-                }
+            // Check if we can run on this page
+            if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:')) {
+                console.log('Cannot activate on this page');
+                return;
+            }
 
-                // Get preferences
-                const prefs = await chrome.storage.sync.get(['excludeComments', 'autoFormat', 'removeScripts', 'smartTrimTailwind']);
+            const prefs = await chrome.storage.sync.get([
+                'excludeComments', 'autoFormat', 'removeScripts', 'smartTrimTailwind',
+                'assetPlaceholders', 'preserveAriaData', 'includeTailwindConfig', 'inferComponentNames'
+            ]);
 
-                // Send message to content script
+            if (command === 'activate-scraper') {
                 await chrome.tabs.sendMessage(tab.id, {
                     action: 'startElementSelection',
                     preferences: prefs
                 });
-            } catch (error) {
-                console.error('Error activating scraper:', error);
+            } else if (command === 'toggle-multi-select') {
+                await chrome.tabs.sendMessage(tab.id, {
+                    action: 'startMultiSelectMode',
+                    preferences: prefs
+                });
             }
+        } catch (error) {
+            console.error('Error handling command:', error);
         }
     }
 
@@ -106,6 +129,30 @@ class BackgroundService {
         try {
             const result = await chrome.storage.local.get(key);
             sendResponse({ success: true, data: result[key] });
+        } catch (error) {
+            sendResponse({ success: false, error: error.message });
+        }
+    }
+
+    async openAITab(provider, context, sendResponse) {
+        try {
+            const maxLength = 4000;
+            let truncatedContext = context;
+            if (context.length > maxLength) {
+                truncatedContext = context.substring(0, maxLength) + '\n\n[Content truncated]';
+            }
+
+            const encodedContext = encodeURIComponent(truncatedContext);
+
+            const urls = {
+                gemini: `https://gemini.google.com/app?text=${encodedContext}`,
+                chatgpt: `https://chat.openai.com/?q=${encodedContext}`
+            };
+
+            const url = urls[provider] || urls.gemini;
+            await chrome.tabs.create({ url });
+
+            sendResponse({ success: true });
         } catch (error) {
             sendResponse({ success: false, error: error.message });
         }
