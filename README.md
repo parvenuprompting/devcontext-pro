@@ -113,6 +113,27 @@ DevContext Pro features a premium user experience with:
 - [ ] Cloud sync for preferences
 - [ ] Team collaboration features
 
+## 🔧 Troubleshooting
+
+### Icons Not Showing
+If you see a placeholder "D" icon instead of the logo:
+
+1. **Remove the extension completely**
+   - Go to `chrome://extensions/`
+   - Click **Remove** (not just disable)
+
+2. **Restart Chrome**
+   - Close Chrome completely
+   - Reopen Chrome
+
+3. **Reload the extension**
+   - Go to `chrome://extensions/`
+   - Enable **Developer mode**
+   - Click **Load unpacked**
+   - Select the extension folder
+
+The icons should now display correctly in both the toolbar and extension management page.
+
 ## 📄 License
 
 This project is provided as-is for development purposes.
