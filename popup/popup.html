@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevContext Pro</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 3L4 7L8 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M16 3L20 7L16 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M12 21V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <h1>DevContext Pro</h1>
+      </div>
+      <div class="version">v1.0.0</div>
+    </div>
+
+    <!-- Main Actions -->
+    <div class="actions">
+      <button class="action-btn primary" id="scrapeComponent">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" />
+          <path d="M9 9L15 15M15 9L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <span>Scrape Component</span>
+      </button>
+
+      <button class="action-btn secondary" id="cleanDOM">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>Clean DOM</span>
+      </button>
+
+      <button class="action-btn secondary" id="copyAPI">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2" />
+          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2" />
+        </svg>
+        <span>Copy API State</span>
+      </button>
+    </div>
+
+    <!-- Settings -->
+    <div class="settings">
+      <h3>Preferences</h3>
+      <div class="setting-item">
+        <label>
+          <input type="checkbox" id="excludeComments" checked>
+          <span>Exclude Comments</span>
+        </label>
+      </div>
+      <div class="setting-item">
+        <label>
+          <input type="checkbox" id="autoFormat" checked>
+          <span>Auto-format for Gemini</span>
+        </label>
+      </div>
+      <div class="setting-item">
+        <label>
+          <input type="checkbox" id="removeScripts" checked>
+          <span>Remove Scripts & Styles</span>
+        </label>
+      </div>
+      <div class="setting-item">
+        <label>
+          <input type="checkbox" id="smartTrimTailwind" checked>
+          <span>Smart Trim Tailwind Classes</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="status" id="status">
+      <div class="status-indicator"></div>
+      <span>Ready</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
