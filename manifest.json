@@ -49,5 +49,13 @@
         "<all_urls>"
       ]
     }
-  ]
+  ],
+  "commands": {
+    "activate-scraper": {
+      "suggested_key": {
+        "default": "Alt+S"
+      },
+      "description": "Start element selection"
+    }
+  }
 }

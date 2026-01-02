@@ -13,6 +13,11 @@ class BackgroundService {
             return true;
         });
 
+        // Global keyboard shortcut handler
+        chrome.commands.onCommand.addListener((command) => {
+            this.handleCommand(command);
+        });
+
         this.setupDefaultPreferences();
     }
 
@@ -59,6 +64,32 @@ class BackgroundService {
 
             default:
                 sendResponse({ success: false, error: 'Unknown action' });
+        }
+    }
+
+    async handleCommand(command) {
+        if (command === 'activate-scraper') {
+            try {
+                // Get the active tab
+                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+                // Check if we can run on this page
+                if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:')) {
+                    console.log('Cannot activate scraper on this page');
+                    return;
+                }
+
+                // Get preferences
+                const prefs = await chrome.storage.sync.get(['excludeComments', 'autoFormat', 'removeScripts', 'smartTrimTailwind']);
+
+                // Send message to content script
+                await chrome.tabs.sendMessage(tab.id, {
+                    action: 'startElementSelection',
+                    preferences: prefs
+                });
+            } catch (error) {
+                console.error('Error activating scraper:', error);
+            }
         }
     }
 
