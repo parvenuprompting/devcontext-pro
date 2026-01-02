@@ -32,6 +32,11 @@ class DevContextPro {
                 this.extractAPIState(sendResponse);
                 break;
 
+            case 'showNotification':
+                this.showNotification(request.message, request.isError || false);
+                sendResponse({ success: true });
+                break;
+
             default:
                 sendResponse({ success: false, error: 'Unknown action' });
         }
@@ -153,23 +158,22 @@ class DevContextPro {
     }
 
     trimTailwindClasses(node) {
-        // Common Tailwind utility patterns to trim
-        const tailwindPatterns = [
-            /\b(m|p)(t|b|l|r|x|y)?-\d+\b/g,           // Margin & Padding
-            /\b(w|h)-(\d+|full|screen|auto)\b/g,       // Width & Height
-            /\bgap-\d+\b/g,                             // Gap
-            /\bspace-(x|y)-\d+\b/g,                    // Space
-            /\b(rounded|shadow)(-\w+)?\b/g,            // Rounded & Shadow
-            /\bbg-([\w-]+)-\d{2,3}\b/g,                // Background colors
-            /\btext-([\w-]+)-\d{2,3}\b/g,              // Text colors
-            /\bborder-([\w-]+)-\d{2,3}\b/g,            // Border colors
-            /\btext-(xs|sm|base|lg|xl|\dxl)\b/g,       // Text sizes
-            /\bfont-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)\b/g, // Font weights
-            /\b(flex|grid|hidden|block|inline)(-\w+)?\b/g, // Keep layout classes but mark them
-            /\bhover:([\w-]+)\b/g,                     // Hover states
-            /\b(sm|md|lg|xl|2xl):([\w-]+)\b/g,         // Responsive prefixes
-            /\bdark:([\w-]+)\b/g                       // Dark mode
+        // Visual-only patterns (REMOVE these)
+        const visualPatterns = [
+            /\b(m|p)(t|b|l|r|x|y)?-\d+\b/,           // Margin & Padding
+            /\b(rounded|shadow)(-\w+)?$/,             // Rounded & Shadow
+            /\bbg-([\w-]+)-\d{2,3}$/,                 // Background colors
+            /\btext-([\w-]+)-\d{2,3}$/,               // Text colors
+            /\bborder-([\w-]+)-\d{2,3}$/,             // Border colors
+            /\btext-(xs|sm|base|lg|xl|\dxl)$/,        // Text sizes
+            /\bfont-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/,
+            /\b(w|h)-\d+$/,                           // Fixed width/height
+            /\bgap-\d+$/,                             // Gap values
+            /\bspace-(x|y)-\d+$/                      // Space values
         ];
+
+        // Structural classes (KEEP these - they define layout)
+        const structuralPattern = /^(flex|grid|container|relative|absolute|fixed|sticky|static|hidden|block|inline|inline-block|inline-flex|inline-grid|table|flow-root|contents|overflow|z-|order-|col-|row-|items-|justify-|self-|place-|basis-|grow|shrink)/;
 
         const elementsWithClasses = node.querySelectorAll('[class]');
 
@@ -177,24 +181,42 @@ class DevContextPro {
             const originalClasses = el.getAttribute('class');
             if (!originalClasses) return;
 
-            let trimmedClasses = originalClasses;
+            const classes = originalClasses.split(/\s+/);
 
-            // Keep structural classes, trim visual styling
-            const classArray = originalClasses.split(/\s+/);
-            const importantClasses = classArray.filter(cls => {
-                // Keep layout/structural classes
-                return cls.match(/^(flex|grid|container|relative|absolute|fixed|sticky|hidden|block|inline)/);
+            const kept = classes.filter(cls => {
+                // Always keep structural classes
+                if (structuralPattern.test(cls)) return true;
+
+                // Check if it's a responsive/state variant (e.g., md:flex, hover:bg-blue)
+                if (cls.includes(':')) {
+                    const parts = cls.split(':');
+                    const baseClass = parts[parts.length - 1];
+
+                    // Keep if the base class is structural
+                    if (structuralPattern.test(baseClass)) return true;
+
+                    // Remove if it's visual styling
+                    for (const pattern of visualPatterns) {
+                        if (pattern.test(baseClass)) return false;
+                    }
+
+                    return true; // Keep custom variants
+                }
+
+                // Remove if matches any visual pattern
+                for (const pattern of visualPatterns) {
+                    if (pattern.test(cls)) return false;
+                }
+
+                // Keep custom classes (not Tailwind)
+                return true;
             });
 
-            // If we have important structural classes, use only those
-            // Otherwise, replace with a generic placeholder
-            if (importantClasses.length > 0) {
-                trimmedClasses = importantClasses.join(' ') + ' [...]';
+            if (kept.length > 0) {
+                el.setAttribute('class', kept.join(' ') + ' [...]');
             } else {
-                trimmedClasses = '[tailwind-classes]';
+                el.setAttribute('class', '[tailwind-classes]');
             }
-
-            el.setAttribute('class', trimmedClasses);
         });
     }
 

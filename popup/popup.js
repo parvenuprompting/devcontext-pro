@@ -111,6 +111,14 @@ class PopupController {
 
       if (response.success) {
         await navigator.clipboard.writeText(response.cleanedHTML);
+
+        // Show notification on the page
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'showNotification',
+          message: '✓ Full DOM copied to clipboard',
+          isError: false
+        });
+
         this.updateStatus('✓ Copied to clipboard', 'success');
 
         setTimeout(() => {
@@ -138,6 +146,14 @@ class PopupController {
 
       if (response.success) {
         await navigator.clipboard.writeText(response.apiState);
+
+        // Show notification on the page
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'showNotification',
+          message: '✓ API state copied to clipboard',
+          isError: false
+        });
+
         this.updateStatus('✓ API state copied', 'success');
 
         setTimeout(() => {
