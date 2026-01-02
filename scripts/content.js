@@ -121,9 +121,11 @@ class DevContextPro {
         if (this.preferences.removeScripts) {
             clone.querySelectorAll('script, style, noscript').forEach(el => el.remove());
 
+            // Remove complex SVG paths to reduce size
             clone.querySelectorAll('svg path').forEach(path => {
-                if (path.getAttribute('d') && path.getAttribute('d').length > 100) {
-                    path.setAttribute('d', '...');
+                const d = path.getAttribute('d');
+                if (d && d.length > 100) {
+                    path.remove();
                 }
             });
         }
