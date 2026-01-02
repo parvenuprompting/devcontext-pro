@@ -195,6 +195,18 @@ body {
   transform: translateY(0);
 }
 
+/* Keyboard Shortcut Hint */
+.shortcut-hint {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
 /* Settings */
 .settings {
   background: var(--bg-glass);
