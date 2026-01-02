@@ -20,7 +20,8 @@ class BackgroundService {
         const defaults = {
             excludeComments: true,
             autoFormat: true,
-            removeScripts: true
+            removeScripts: true,
+            smartTrimTailwind: true
         };
 
         const existing = await chrome.storage.sync.get(Object.keys(defaults));
