@@ -531,6 +531,7 @@ class SidePanelController {
             });
 
             if (response.success) {
+                await navigator.clipboard.writeText(`CSS: ${response.css}\nXPath: ${response.xpath}`);
                 this.lastCopiedContent = `CSS: ${response.css}\nXPath: ${response.xpath}`;
                 this.updateStatus('✓ Selectors copied', 'success');
 
@@ -538,7 +539,7 @@ class SidePanelController {
                     this.updateStatus('Ready', 'ready');
                 }, 2000);
             } else {
-                this.updateStatus('Select an element first', 'error');
+                this.updateStatus('Use "Scrape Component" first to select an element', 'error');
             }
 
         } catch (error) {
@@ -546,7 +547,7 @@ class SidePanelController {
             if (error.message && error.message.includes('Receiving end does not exist')) {
                 this.updateStatus('Please refresh the page and try again', 'error');
             } else {
-                this.updateStatus('Select an element first', 'error');
+                this.updateStatus('Use "Scrape Component" first to select an element', 'error');
             }
         }
     }
@@ -613,6 +614,7 @@ class SidePanelController {
             });
 
             if (response.success) {
+                await navigator.clipboard.writeText(response.markdown);
                 this.lastCopiedContent = response.markdown;
                 this.updateStatus('✓ Markdown exported', 'success');
 
@@ -620,7 +622,7 @@ class SidePanelController {
                     this.updateStatus('Ready', 'ready');
                 }, 2000);
             } else {
-                this.updateStatus('Select an element first', 'error');
+                this.updateStatus('Use "Scrape Component" first to select an element', 'error');
             }
 
         } catch (error) {
@@ -628,7 +630,7 @@ class SidePanelController {
             if (error.message && error.message.includes('Receiving end does not exist')) {
                 this.updateStatus('Please refresh the page and try again', 'error');
             } else {
-                this.updateStatus('Select an element first', 'error');
+                this.updateStatus('Use "Scrape Component" first to select an element', 'error');
             }
         }
     }
