@@ -43,10 +43,30 @@ class SidePanelController {
         document.getElementById('captureDiff').addEventListener('click', () => this.handleCaptureDiff());
 
         // Quick actions
-        document.getElementById('genTSInterface').addEventListener('click', () => this.handleGenerateTSInterface());
-        document.getElementById('copySelector').addEventListener('click', () => this.handleCopySelector());
-        document.getElementById('networkSnap').addEventListener('click', () => this.handleNetworkSnapshot());
-        document.getElementById('exportMarkdown').addEventListener('click', () => this.handleExportMarkdown());
+        const genTS = document.getElementById('genTSInterface');
+        const copySelector = document.getElementById('copySelector');
+        const networkSnap = document.getElementById('networkSnap');
+        const exportMarkdown = document.getElementById('exportMarkdown');
+
+        console.log('Quick Actions buttons found:', { genTS, copySelector, networkSnap, exportMarkdown });
+
+        if (genTS) genTS.addEventListener('click', () => {
+            console.log('TS Interface clicked');
+            this.handleGenerateTSInterface();
+        });
+        if (copySelector) copySelector.addEventListener('click', () => {
+            console.log('CSS Selector clicked');
+            this.handleCopySelector();
+        });
+        if (networkSnap) networkSnap.addEventListener('click', () => {
+            console.log('Network clicked');
+            this.handleNetworkSnapshot();
+        });
+        if (exportMarkdown) exportMarkdown.addEventListener('click', () => {
+            console.log('Markdown clicked');
+            this.handleExportMarkdown();
+        });
+
 
         // Ask AI
         document.getElementById('askAI').addEventListener('click', () => this.handleAskAI());
@@ -495,6 +515,17 @@ class SidePanelController {
 
             const tab = await this.getActiveTab();
 
+            if (!tab || !tab.url) {
+                this.updateStatus('No active tab found', 'error');
+                return;
+            }
+
+            // Check if it's a valid web page
+            if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:')) {
+                this.updateStatus('Cannot run on system pages. Open a website first.', 'error');
+                return;
+            }
+
             const response = await chrome.tabs.sendMessage(tab.id, {
                 action: 'generateCSSSelector'
             });
@@ -512,7 +543,11 @@ class SidePanelController {
 
         } catch (error) {
             console.error('Error copying selector:', error);
-            this.updateStatus('Select an element first', 'error');
+            if (error.message && error.message.includes('Receiving end does not exist')) {
+                this.updateStatus('Please refresh the page and try again', 'error');
+            } else {
+                this.updateStatus('Select an element first', 'error');
+            }
         }
     }
 
@@ -521,7 +556,17 @@ class SidePanelController {
             this.updateStatus('Capturing network activity...', 'processing');
 
             const tab = await this.getActiveTab();
-            this.checkSystemPage(tab);
+
+            if (!tab || !tab.url) {
+                this.updateStatus('No active tab found', 'error');
+                return;
+            }
+
+            // Check if it's a valid web page
+            if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:')) {
+                this.updateStatus('Cannot run on system pages. Open a website first.', 'error');
+                return;
+            }
 
             const response = await chrome.tabs.sendMessage(tab.id, {
                 action: 'getNetworkActivity'
@@ -538,7 +583,11 @@ class SidePanelController {
 
         } catch (error) {
             console.error('Error capturing network:', error);
-            this.updateStatus(error.message, 'error');
+            if (error.message && error.message.includes('Receiving end does not exist')) {
+                this.updateStatus('Please refresh the page and try again', 'error');
+            } else {
+                this.updateStatus(error.message || 'Network capture failed', 'error');
+            }
         }
     }
 
@@ -547,6 +596,17 @@ class SidePanelController {
             this.updateStatus('Exporting markdown...', 'processing');
 
             const tab = await this.getActiveTab();
+
+            if (!tab || !tab.url) {
+                this.updateStatus('No active tab found', 'error');
+                return;
+            }
+
+            // Check if it's a valid web page
+            if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:')) {
+                this.updateStatus('Cannot run on system pages. Open a website first.', 'error');
+                return;
+            }
 
             const response = await chrome.tabs.sendMessage(tab.id, {
                 action: 'exportMarkdownDoc'
@@ -565,7 +625,11 @@ class SidePanelController {
 
         } catch (error) {
             console.error('Error exporting markdown:', error);
-            this.updateStatus('Select an element first', 'error');
+            if (error.message && error.message.includes('Receiving end does not exist')) {
+                this.updateStatus('Please refresh the page and try again', 'error');
+            } else {
+                this.updateStatus('Select an element first', 'error');
+            }
         }
     }
 
