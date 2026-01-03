@@ -192,7 +192,16 @@ class DevContextPro {
                 this.showNotification('✗ Failed to copy', true);
             }
 
-            this.stopElementSelection();
+            // Keep selectedElement for subsequent Quick Actions (CSS Selector, Markdown)
+            // But stop the selection UI overlay
+            this.isSelecting = false;
+            if (this.overlay) {
+                this.overlay.remove();
+                this.overlay = null;
+            }
+            document.removeEventListener('mouseover', this.handleMouseOver);
+            document.removeEventListener('click', this.handleClick, true);
+            document.removeEventListener('keydown', this.handleKeyDown);
         }
     }
 
