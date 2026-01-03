@@ -22,6 +22,12 @@ class BackgroundService {
             this.handleCommand(command);
         });
 
+        // Set side panel behavior to open on action click
+        if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
+            chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+                .catch((error) => console.error(error));
+        }
+
         this.setupDefaultPreferences();
     }
 
