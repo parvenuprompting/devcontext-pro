@@ -31,6 +31,7 @@ class DevContextPro {
 
     handleMessage(request, sender, sendResponse) {
         this.preferences = request.preferences || {};
+        this.quickAction = request.quickAction || null; // Store quick action type
 
         switch (request.action) {
             case 'startElementSelection':
@@ -181,38 +182,76 @@ class DevContextPro {
             // Multi-select: add to bucket
             this.addToBucket(e.target);
         } else {
-            // Single mode: copy immediately
-            const html = this.extractCleanHTML(this.selectedElement);
+            // Check if this is a quick action (CSS Selector or Markdown)
+            if (this.quickAction === 'cssSelector') {
+                // Generate CSS selector
+                const cssSelector = this.generateUniqueSelector(this.selectedElement);
+                const xpath = this.generateXPath(this.selectedElement);
+                const output = `CSS Selector: ${cssSelector}\nXPath: ${xpath}`;
 
-            try {
-                await navigator.clipboard.writeText(html);
-                this.showNotification('✓ Component copied to clipboard');
-            } catch (error) {
-                console.error('Failed to copy:', error);
-                this.showNotification('✗ Failed to copy', true);
-            }
+                try {
+                    await navigator.clipboard.writeText(output);
+                    this.showNotification('✓ CSS selector copied to clipboard');
+                } catch (error) {
+                    console.error('Failed to copy:', error);
+                    this.showNotification('✗ Failed to copy', true);
+                }
 
-            // Keep selectedElement for subsequent Quick Actions (CSS Selector, Markdown)
-            // But stop the selection UI overlay
-            this.isSelecting = false;
-            if (this.overlay) {
-                this.overlay.remove();
-                this.overlay = null;
+                this.quickAction = null;
+                this.stopElementSelection();
+
+            } else if (this.quickAction === 'markdown') {
+                // Export as markdown
+                const markdown = this.generateMarkdownDoc(this.selectedElement);
+
+                try {
+                    await navigator.clipboard.writeText(markdown);
+                    this.showNotification('✓ Markdown exported to clipboard');
+                } catch (error) {
+                    console.error('Failed to copy:', error);
+                    this.showNotification('✗ Failed to copy', true);
+                }
+
+                this.quickAction = null;
+                this.stopElementSelection();
+
+            } else {
+                // Default: scrape component HTML
+                const html = this.extractCleanHTML(this.selectedElement);
+
+                try {
+                    await navigator.clipboard.writeText(html);
+                    this.showNotification('✓ Component copied to clipboard');
+                } catch (error) {
+                    console.error('Failed to copy:', error);
+                    this.showNotification('✗ Failed to copy', true);
+                }
+
+                // Keep selectedElement for subsequent Quick Actions (CSS Selector, Markdown)
+                // But stop the selection UI overlay
+                this.isSelecting = false;
+                if (this.overlay) {
+                    this.overlay.remove();
+                    this.overlay = null;
+                }
+                document.removeEventListener('mouseover', this.handleMouseOver);
+                document.removeEventListener('click', this.handleClick, true);
+                document.removeEventListener('keydown', this.handleKeyDown);
             }
-            document.removeEventListener('mouseover', this.handleMouseOver);
-            document.removeEventListener('click', this.handleClick, true);
-            document.removeEventListener('keydown', this.handleKeyDown);
         }
     }
 
-    handleKeyDown = (e) => {
-        if (e.key === 'Escape') {
-            this.stopElementSelection();
-            if (this.multiSelectMode) {
-                this.stopMultiSelectMode();
-            }
-            this.showNotification('Selection cancelled');
+    stopElementSelection() {
+        this.isSelecting = false;
+
+        if (this.overlay) {
+            this.overlay.remove();
+            this.overlay = null;
         }
+
+        document.removeEventListener('mouseover', this.handleMouseOver);
+        document.removeEventListener('click', this.handleClick, true);
+        document.removeEventListener('keydown', this.handleKeyDown);
     }
 
     // ============================================
@@ -938,6 +977,24 @@ class DevContextPro {
         }).catch(error => {
             sendResponse({ success: false, error: error.message });
         });
+    }
+
+    // Helper method for quick action
+    generateMarkdownDoc(element) {
+        const context = {
+            html: this.extractCleanHTML(element),
+            selector: {
+                css: this.generateUniqueSelector(element),
+                xpath: this.generateXPath(element)
+            },
+            componentInfo: this.inferComponentName(element)
+        };
+
+        if (window.DevContextUtils) {
+            return window.DevContextUtils.formatAsMarkdownDoc(context);
+        } else {
+            return this.formatBasicMarkdown(context);
+        }
     }
 
     formatBasicMarkdown(context) {

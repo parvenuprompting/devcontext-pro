@@ -511,7 +511,7 @@ class SidePanelController {
 
     async handleCopySelector() {
         try {
-            this.updateStatus('Generating selector...', 'processing');
+            this.updateStatus('Select element for CSS selector...', 'processing');
 
             const tab = await this.getActiveTab();
 
@@ -526,28 +526,23 @@ class SidePanelController {
                 return;
             }
 
-            const response = await chrome.tabs.sendMessage(tab.id, {
-                action: 'generateCSSSelector'
+            const prefs = await this.getAllPreferences();
+
+            // Start element selection for CSS selector
+            await chrome.tabs.sendMessage(tab.id, {
+                action: 'startElementSelection',
+                preferences: prefs,
+                quickAction: 'cssSelector' // Tell content script to run CSS selector after selection
             });
 
-            if (response.success) {
-                await navigator.clipboard.writeText(`CSS: ${response.css}\nXPath: ${response.xpath}`);
-                this.lastCopiedContent = `CSS: ${response.css}\nXPath: ${response.xpath}`;
-                this.updateStatus('✓ Selectors copied', 'success');
-
-                setTimeout(() => {
-                    this.updateStatus('Ready', 'ready');
-                }, 2000);
-            } else {
-                this.updateStatus('Use "Scrape Component" first to select an element', 'error');
-            }
+            this.updateStatus('Click element to get CSS selector', 'processing');
 
         } catch (error) {
             console.error('Error copying selector:', error);
             if (error.message && error.message.includes('Receiving end does not exist')) {
                 this.updateStatus('Please refresh the page and try again', 'error');
             } else {
-                this.updateStatus('Use "Scrape Component" first to select an element', 'error');
+                this.updateStatus('Failed to start selector', 'error');
             }
         }
     }
@@ -594,7 +589,7 @@ class SidePanelController {
 
     async handleExportMarkdown() {
         try {
-            this.updateStatus('Exporting markdown...', 'processing');
+            this.updateStatus('Select element for markdown export...', 'processing');
 
             const tab = await this.getActiveTab();
 
@@ -609,28 +604,23 @@ class SidePanelController {
                 return;
             }
 
-            const response = await chrome.tabs.sendMessage(tab.id, {
-                action: 'exportMarkdownDoc'
+            const prefs = await this.getAllPreferences();
+
+            // Start element selection for markdown export
+            await chrome.tabs.sendMessage(tab.id, {
+                action: 'startElementSelection',
+                preferences: prefs,
+                quickAction: 'markdown' // Tell content script to run markdown export after selection
             });
 
-            if (response.success) {
-                await navigator.clipboard.writeText(response.markdown);
-                this.lastCopiedContent = response.markdown;
-                this.updateStatus('✓ Markdown exported', 'success');
-
-                setTimeout(() => {
-                    this.updateStatus('Ready', 'ready');
-                }, 2000);
-            } else {
-                this.updateStatus('Use "Scrape Component" first to select an element', 'error');
-            }
+            this.updateStatus('Click element to export as markdown', 'processing');
 
         } catch (error) {
             console.error('Error exporting markdown:', error);
             if (error.message && error.message.includes('Receiving end does not exist')) {
                 this.updateStatus('Please refresh the page and try again', 'error');
             } else {
-                this.updateStatus('Use "Scrape Component" first to select an element', 'error');
+                this.updateStatus('Failed to start markdown export', 'error');
             }
         }
     }
