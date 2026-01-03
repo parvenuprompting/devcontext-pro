@@ -13,7 +13,7 @@ class SidePanelController {
 
     init() {
         this.loadPreferences();
-        this.loadCustomPrompts();
+
         this.loadColorHistory();
         this.attachEventListeners();
 
@@ -87,10 +87,7 @@ class SidePanelController {
             }
         });
 
-        // Custom prompts
-        document.getElementById('addPrompt').addEventListener('click', () => this.showPromptModal());
-        document.getElementById('cancelPrompt').addEventListener('click', () => this.hidePromptModal());
-        document.getElementById('savePrompt').addEventListener('click', () => this.saveCustomPrompt());
+
     }
 
     // ============================================
@@ -631,7 +628,7 @@ class SidePanelController {
 
     async handleAskAI() {
         try {
-            const prefs = await chrome.storage.sync.get(['aiProvider', 'customPrompts']);
+            const prefs = await chrome.storage.sync.get(['aiProvider']);
             const provider = prefs.aiProvider || 'gemini';
 
             // Get clipboard content
@@ -642,15 +639,7 @@ class SidePanelController {
                 context = this.lastCopiedContent || 'No content copied yet';
             }
 
-            // Check if there's a selected prompt to prepend
-            const selectedPrompt = document.querySelector('.prompt-item.selected');
-            if (selectedPrompt && prefs.customPrompts) {
-                const promptId = selectedPrompt.dataset.id;
-                const prompt = prefs.customPrompts.find(p => p.id === promptId);
-                if (prompt) {
-                    context = prompt.prompt + '\n\n' + context;
-                }
-            }
+
 
             // Truncate for URL safety (URLs have length limits)
             const maxLength = 4000;
@@ -674,103 +663,7 @@ class SidePanelController {
         }
     }
 
-    // ============================================
-    // CUSTOM PROMPTS
-    // ============================================
 
-    async loadCustomPrompts() {
-        const { customPrompts = [] } = await chrome.storage.sync.get('customPrompts');
-        this.renderPromptsList(customPrompts);
-    }
-
-    renderPromptsList(prompts) {
-        const list = document.getElementById('promptsList');
-
-        if (prompts.length === 0) {
-            list.innerHTML = '<div class="no-prompts">No custom prompts yet</div>';
-            return;
-        }
-
-        list.innerHTML = prompts.map(prompt => `
-      <div class="prompt-item" data-id="${prompt.id}">
-        <span class="prompt-name">${this.escapeHtml(prompt.name)}</span>
-        <div class="prompt-actions">
-          <button class="prompt-select" title="Use this prompt">✓</button>
-          <button class="prompt-delete" title="Delete">×</button>
-        </div>
-      </div>
-    `).join('');
-
-        // Add event listeners
-        list.querySelectorAll('.prompt-item').forEach(item => {
-            item.querySelector('.prompt-select').addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.selectPrompt(item);
-            });
-            item.querySelector('.prompt-delete').addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.deletePrompt(item.dataset.id);
-            });
-        });
-    }
-
-    selectPrompt(item) {
-        document.querySelectorAll('.prompt-item').forEach(i => i.classList.remove('selected'));
-        item.classList.toggle('selected');
-    }
-
-    showPromptModal() {
-        document.getElementById('promptModal').classList.add('visible');
-        document.getElementById('promptName').focus();
-    }
-
-    hidePromptModal() {
-        document.getElementById('promptModal').classList.remove('visible');
-        document.getElementById('promptName').value = '';
-        document.getElementById('promptText').value = '';
-    }
-
-    async saveCustomPrompt() {
-        const name = document.getElementById('promptName').value.trim();
-        const prompt = document.getElementById('promptText').value.trim();
-
-        if (!name || !prompt) {
-            this.updateStatus('Please fill in all fields', 'error');
-            return;
-        }
-
-        const { customPrompts = [] } = await chrome.storage.sync.get('customPrompts');
-
-        const newPrompt = {
-            id: Date.now().toString(),
-            name: name,
-            prompt: prompt
-        };
-
-        customPrompts.push(newPrompt);
-        await chrome.storage.sync.set({ customPrompts });
-
-        this.renderPromptsList(customPrompts);
-        this.hidePromptModal();
-        this.updateStatus('✓ Prompt saved', 'success');
-
-        setTimeout(() => {
-            this.updateStatus('Ready', 'ready');
-        }, 2000);
-    }
-
-    async deletePrompt(id) {
-        const { customPrompts = [] } = await chrome.storage.sync.get('customPrompts');
-        const filtered = customPrompts.filter(p => p.id !== id);
-        await chrome.storage.sync.set({ customPrompts: filtered });
-        this.renderPromptsList(filtered);
-    }
-
-    escapeHtml(str) {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
 }
 
 new SidePanelController();
