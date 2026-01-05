@@ -1,147 +1,149 @@
+![DevContext Pro Banner](assets/banner.png)
+
 # DevContext Pro
 
-> Premium Chrome Extension for extracting clean DOM context and component structures
+> Premium Chrome Extensie voor het extraheren van schone DOM-context en componentstructuren
 
-## 🎯 Overview
+## 🎯 Overzicht
 
-DevContext Pro is a professional developer tool designed to streamline the process of extracting HTML components, cleaning DOM structures, and capturing API state from web pages. Built with Manifest V3, it provides a premium, glassmorphic interface with powerful extraction capabilities.
+DevContext Pro is een professionele ontwikkelaarstool ontworpen om het proces van het extraheren van HTML-componenten, het opschonen van DOM-structuren en het vastleggen van API-state van webpagina's te stroomlijnen. Gebouwd met Manifest V3, biedt het een premium, glassmorphic interface met krachtige extractiemogelijkheden.
 
-## ✨ Features
+## ✨ Functionaliteiten
 
 ### 🔍 Scrape Component
-- Interactive element selector with visual overlay
-- Click any element to extract its HTML structure
-- Smart formatting with proper indentation
-- One-click copy to clipboard
+- Interactieve element-selector met visuele overlay
+- Klik op een element om de HTML-structuur te extraheren
+- Slimme formattering met juiste inspringing
+- Eén-klik kopiëren naar klembord
 
 ### 🧹 Clean DOM
-- Removes unnecessary scripts, styles, and SVG paths
-- Strips HTML comments
-- Optimizes for AI context (Gemini-ready)
-- Configurable cleaning preferences
+- Verwijdert onnodige scripts, styles en SVG-paden
+- Stript HTML-commentaren
+- Geoptimaliseerd voor AI-context (klaar voor Gemini)
+- Configureerbare opschoonvoorkeuren
 
 ### 📊 Copy API State
-- Extract localStorage and sessionStorage
-- Capture cookies and window variables
-- Formatted as markdown for easy sharing
-- Perfect for debugging and documentation
+- Extraheer localStorage en sessionStorage
+- Leg cookies en window-variabelen vast
+- Geformatteerd als markdown voor eenvoudig delen
+- Perfect voor debugging en documentatie
 
-## 🚀 Installation
+## 🚀 Installatie
 
-### From Source
+### Vanuit de broncode
 
-1. Clone or download this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" in the top right
-4. Click "Load unpacked"
-5. Select the `devcontext-pro` directory
+1. Clone of download deze repository
+2. Open Chrome en ga naar `chrome://extensions/`
+3. Schakel "Developer mode" in rechtsboven
+4. Klik op "Load unpacked"
+5. Selecteer de `devcontext-pro` map
 
-## 💎 Usage
+## 💎 Gebruik
 
-1. Click the DevContext Pro icon in your Chrome toolbar
-2. Choose your desired action:
-   - **Scrape Component**: Click to activate, then click any element on the page
-   - **Clean DOM**: Instantly copy the entire cleaned page structure
-   - **Copy API State**: Extract all API-related state information
+1. Klik op het DevContext Pro-pictogram in je Chrome-werkbalk
+2. Kies je gewenste actie:
+   - **Scrape Component**: Klik om te activeren, klik vervolgens op een element op de pagina
+   - **Clean DOM**: Kopieer direct de volledig opgeschoonde paginastructuur
+   - **Copy API State**: Extraheer alle API-gerelateerde state-informatie
 
-### Preferences
+### Voorkeuren
 
-Configure extraction behavior:
-- **Exclude Comments**: Remove HTML comments from output
-- **Auto-format for Gemini**: Format output optimally for AI consumption
-- **Remove Scripts & Styles**: Strip `<script>`, `<style>`, and inline styles
+Configureer extractiegedrag:
+- **Exclude Comments**: Verwijder HTML-commentaren uit de uitvoer
+- **Auto-format for Gemini**: Formatteer uitvoer optimaal voor AI-verwerking
+- **Remove Scripts & Styles**: Strip `<script>`, `<style>`, en inline stijlen
 
-## 🏗️ Architecture
+## 🏗️ Architectuur
 
 ```
 devcontext-pro/
-├── manifest.json          # Manifest V3 configuration
-├── icons/                 # Extension icons (16, 32, 48, 128)
-├── popup/                 # Extension popup UI
+├── manifest.json          # Manifest V3 configuratie
+├── icons/                 # Extensie pictogrammen (16, 32, 48, 128)
+├── popup/                 # Extensie popup UI
 │   ├── popup.html         # Premium Material Design 3 interface
 │   ├── popup.css          # Glassmorphism styling
-│   └── popup.js           # UI controller and event handling
+│   └── popup.js           # UI controller en event handling
 └── scripts/
-    ├── content.js         # Element selection and DOM extraction
-    ├── content.css        # Overlay and notification styles
-    └── background.js      # Service worker for processing
+    ├── content.js         # Element selectie en DOM extractie
+    ├── content.css        # Overlay en notificatie stijlen
+    └── background.js      # Service worker voor verwerking
 ```
 
-## 🎨 Design Philosophy
+## 🎨 Design Filosofie
 
-DevContext Pro features a premium user experience with:
-- **Dark Mode First**: Deep indigo (#1e1b4b) and slate grey (#0f172a) palette
-- **Glassmorphism**: Frosted glass effects with subtle transparency
-- **Smooth Animations**: Micro-interactions for enhanced UX
-- **Material Design 3**: Modern, professional interface components
+DevContext Pro biedt een premium gebruikerservaring met:
+- **Dark Mode First**: Diep indigo (#1e1b4b) en leisteen grijs (#0f172a) palet
+- **Glassmorphism**: Matglaseffecten met subtiele transparantie
+- **Vloeiende Animaties**: Micro-interacties voor verbeterde UX
+- **Material Design 3**: Moderne, professionele interfacecomponenten
 
-## 🔐 Permissions
+## 🔐 Machtigingen
 
-- `activeTab`: Access the currently active tab for element selection
-- `storage`: Save user preferences
-- `scripting`: Inject content scripts for DOM manipulation
+- `activeTab`: Toegang tot het huidige actieve tabblad voor elementselectie
+- `storage`: Gebruikersvoorkeuren opslaan
+- `scripting`: Injecteer content scripts voor DOM-manipulatie
 
-## 🛠️ Development
+## 🛠️ Ontwikkeling
 
 ### Tech Stack
-- Vanilla JavaScript (no external dependencies)
-- Manifest V3 compliance
-- Local-only scripts (no CDNs for security)
+- Vanilla JavaScript (geen externe dependencies)
+- Manifest V3 compliantie
+- Lokale scripts (geen CDN's voor beveiliging)
 
-### Key Components
+### Belangrijkste Componenten
 
 **PopupController** (`popup/popup.js`)
-- Manages UI interactions
-- Handles preference persistence
-- Communicates with content scripts
+- Beheert UI-interacties
+- Handelt opslag van voorkeuren af
+- Communiceert met content scripts
 
 **DevContextPro** (`scripts/content.js`)
-- Element selection with visual overlay
-- DOM cleaning and HTML extraction
-- Copy-to-clipboard functionality
+- Elementselectie met visuele overlay
+- DOM opschonen en HTML-extractie
+- Functionaliteiten voor kopiëren naar klembord
 
 **BackgroundService** (`scripts/background.js`)
-- HTML to Markdown conversion
-- Temporary data storage
-- Complex transformation handling
+- HTML naar Markdown conversie
+- Tijdelijke gegevensopslag
+- Afhandeling van complexe transformaties
 
 ## 📋 Roadmap
 
-- [ ] Export to multiple formats (Markdown, JSON, XML)
-- [ ] Custom CSS selector builder
-- [ ] History of extracted components
-- [ ] Cloud sync for preferences
-- [ ] Team collaboration features
+- [ ] Exporteren naar meerdere formaten (Markdown, JSON, XML)
+- [ ] Custom CSS selector bouwer
+- [ ] Geschiedenis van geëxtraheerde componenten
+- [ ] Cloud sync voor voorkeuren
+- [ ] Team samenwerkingsfuncties
 
-## 🔧 Troubleshooting
+## 🔧 Probleemoplossing
 
-### Icons Not Showing
-If you see a placeholder "D" icon instead of the logo:
+### Pictogrammen niet zichtbaar
+Als je een plaatshouder "D" pictogram ziet in plaats van het logo:
 
-1. **Remove the extension completely**
-   - Go to `chrome://extensions/`
-   - Click **Remove** (not just disable)
+1. **Verwijder de extensie volledig**
+   - Ga naar `chrome://extensions/`
+   - Klik op **Remove** (niet alleen uitschakelen)
 
-2. **Restart Chrome**
-   - Close Chrome completely
-   - Reopen Chrome
+2. **Herstart Chrome**
+   - Sluit Chrome volledig af
+   - Open Chrome opnieuw
 
-3. **Reload the extension**
-   - Go to `chrome://extensions/`
-   - Enable **Developer mode**
-   - Click **Load unpacked**
-   - Select the extension folder
+3. **Herlaad de extensie**
+   - Ga naar `chrome://extensions/`
+   - Schakel **Developer mode** in
+   - Klik op **Load unpacked**
+   - Selecteer de extensiemap
 
-The icons should now display correctly in both the toolbar and extension management page.
+De pictogrammen zouden nu correct moeten worden weergegeven in zowel de werkbalk als de extensiebeheerpagina.
 
-## 📄 License
+## 📄 Licentie
 
-This project is provided as-is for development purposes.
+Dit project wordt aangeboden zoals het is (as-is) voor ontwikkelingsdoeleinden.
 
-## 🤝 Contributing
+## 🤝 Bijdragen
 
-This is a project for personal and professional use. Feel free to fork and customize for your needs.
+Dit is een project voor persoonlijk en professioneel gebruik. Voel je vrij om te forken en aan te passen aan je behoeften.
 
 ---
 
-**Built with ❤️ for developers who value clean code and premium UX**
+**Gebouwd met ❤️ voor ontwikkelaars die waarde hechten aan schone code en premium UX**
