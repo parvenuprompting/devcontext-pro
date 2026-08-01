@@ -57,22 +57,16 @@ class SidePanelController {
         const networkSnap = document.getElementById('networkSnap');
         const exportMarkdown = document.getElementById('exportMarkdown');
 
-        console.log('Quick Actions buttons found:', { genTS, copySelector, networkSnap, exportMarkdown });
-
         if (genTS) genTS.addEventListener('click', () => {
-            console.log('TS Interface clicked');
             this.handleGenerateTSInterface();
         });
         if (copySelector) copySelector.addEventListener('click', () => {
-            console.log('CSS Selector clicked');
             this.handleCopySelector();
         });
         if (networkSnap) networkSnap.addEventListener('click', () => {
-            console.log('Network clicked');
             this.handleNetworkSnapshot();
         });
         if (exportMarkdown) exportMarkdown.addEventListener('click', () => {
-            console.log('Markdown clicked');
             this.handleExportMarkdown();
         });
 

@@ -60,16 +60,18 @@ Configureer extractiegedrag:
 
 ```
 devcontext-pro/
-├── manifest.json          # Manifest V3 configuratie
-├── icons/                 # Extensie pictogrammen (16, 32, 48, 128)
-├── popup/                 # Extensie popup UI
-│   ├── popup.html         # Premium Material Design 3 interface
-│   ├── popup.css          # Glassmorphism styling
-│   └── popup.js           # UI controller en event handling
+├── manifest.json
+├── icons/
+├── assets/
+├── sidepanel/
+│   ├── sidepanel.html
+│   ├── sidepanel.css
+│   └── sidepanel.js
 └── scripts/
-    ├── content.js         # Element selectie en DOM extractie
-    ├── content.css        # Overlay en notificatie stijlen
-    └── background.js      # Service worker voor verwerking
+    ├── background.js
+    ├── content.js
+    ├── content.css
+    └── utils.js
 ```
 
 ## 🎨 Design Filosofie
@@ -95,7 +97,7 @@ DevContext Pro biedt een premium gebruikerservaring met:
 
 ### Belangrijkste Componenten
 
-**PopupController** (`popup/popup.js`)
+**SidePanelController** (`sidepanel/sidepanel.js`)
 - Beheert UI-interacties
 - Handelt opslag van voorkeuren af
 - Communiceert met content scripts
