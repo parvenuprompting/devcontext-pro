@@ -5,7 +5,6 @@
   "description": "Premium developer tool for extracting clean DOM context and component structures",
   "author": "Tiëndo Welles",
   "permissions": [
-    "activeTab",
     "storage",
     "sidePanel"
   ],

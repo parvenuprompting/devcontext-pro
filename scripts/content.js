@@ -116,19 +116,6 @@ class DevContextPro {
         document.addEventListener('keydown', this.handleKeyDown);
     }
 
-    stopElementSelection() {
-        this.isSelecting = false;
-
-        if (this.overlay) {
-            this.overlay.remove();
-            this.overlay = null;
-        }
-
-        document.removeEventListener('mouseover', this.handleMouseOver);
-        document.removeEventListener('click', this.handleClick, true);
-        document.removeEventListener('keydown', this.handleKeyDown);
-    }
-
     createOverlay() {
         this.overlay = document.createElement('div');
         this.overlay.id = 'devcontext-overlay';
@@ -191,6 +178,7 @@ class DevContextPro {
 
                 try {
                     await navigator.clipboard.writeText(output);
+                    chrome.runtime.sendMessage({ action: 'contentCopied', content: output, source: 'scrape' }).catch(() => {});
                     this.showNotification('✓ CSS selector copied to clipboard');
                 } catch (error) {
                     console.error('Failed to copy:', error);
@@ -206,6 +194,7 @@ class DevContextPro {
 
                 try {
                     await navigator.clipboard.writeText(markdown);
+                    chrome.runtime.sendMessage({ action: 'contentCopied', content: markdown, source: 'markdown' }).catch(() => {});
                     this.showNotification('✓ Markdown exported to clipboard');
                 } catch (error) {
                     console.error('Failed to copy:', error);
@@ -221,6 +210,7 @@ class DevContextPro {
 
                 try {
                     await navigator.clipboard.writeText(html);
+                    chrome.runtime.sendMessage({ action: 'contentCopied', content: html, source: 'scrape' }).catch(() => {});
                     this.showNotification('✓ Component copied to clipboard');
                 } catch (error) {
                     console.error('Failed to copy:', error);
@@ -1030,20 +1020,23 @@ class DevContextPro {
             windowVariables: {}
         };
 
-        for (const key in window) {
-            if (window.hasOwnProperty(key) && typeof window[key] !== 'function') {
+        // Whitelist i.p.v. volledige window-scan
+        const KNOWN_STATE_KEYS = [
+            '__NEXT_DATA__', '__NUXT__', '__INITIAL_STATE__', '__PRELOADED_STATE__',
+            '__REDUX_DEVTOOLS_EXTENSION__', '__APOLLO_STATE__', '__data'
+        ];
+
+        KNOWN_STATE_KEYS.forEach(key => {
+            if (window[key] !== undefined) {
                 try {
-                    const value = window[key];
-                    if (typeof value === 'object' && value !== null) {
-                        apiState.windowVariables[key] = JSON.stringify(value, null, 2);
-                    } else if (typeof value !== 'object') {
-                        apiState.windowVariables[key] = String(value);
-                    }
+                    apiState.windowVariables[key] = typeof window[key] === 'object'
+                        ? JSON.stringify(window[key], null, 2)
+                        : String(window[key]);
                 } catch (e) {
-                    // Skip properties that can't be accessed
+                    apiState.windowVariables[key] = '[unserializable]';
                 }
             }
-        }
+        });
 
         let formatted = '# API State Snapshot\n\n';
         formatted += '## LocalStorage\n```json\n' + JSON.stringify(apiState.localStorage, null, 2) + '\n```\n\n';

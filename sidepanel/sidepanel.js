@@ -6,6 +6,7 @@ class SidePanelController {
     constructor() {
         this.statusEl = document.getElementById('status');
         this.lastCopiedContent = '';
+        this.lastCopiedContentSource = '';
         this.multiSelectActive = false;
         this.diffModeActive = false;
         this.init();
@@ -16,6 +17,14 @@ class SidePanelController {
 
         this.loadColorHistory();
         this.attachEventListeners();
+
+        // Listen for content copied from content scripts
+        chrome.runtime.onMessage.addListener((request) => {
+            if (request.action === 'contentCopied') {
+                this.lastCopiedContent = request.content;
+                this.lastCopiedContentSource = request.source || 'scrape';
+            }
+        });
 
         // Check Color Picker support
         if (!window.EyeDropper) {
@@ -138,10 +147,11 @@ class SidePanelController {
         }
     }
 
-    async copyToClipboard(text) {
+    async copyToClipboard(text, source = 'scrape') {
         try {
             await navigator.clipboard.writeText(text);
             this.lastCopiedContent = text;
+            this.lastCopiedContentSource = source;
         } catch (err) {
             console.error('Failed to copy:', err);
         }
@@ -331,6 +341,7 @@ class SidePanelController {
             if (response.success) {
                 await navigator.clipboard.writeText(response.cleanedHTML);
                 this.lastCopiedContent = response.cleanedHTML;
+                this.lastCopiedContentSource = 'cleanDOM';
 
                 chrome.tabs.sendMessage(tab.id, {
                     action: 'showNotification',
@@ -366,6 +377,7 @@ class SidePanelController {
             if (response.success) {
                 await navigator.clipboard.writeText(response.apiState);
                 this.lastCopiedContent = response.apiState;
+                this.lastCopiedContentSource = 'apiState';
 
                 chrome.tabs.sendMessage(tab.id, {
                     action: 'showNotification',
@@ -464,6 +476,7 @@ class SidePanelController {
                 document.getElementById('startDiff').disabled = false;
                 document.getElementById('captureDiff').disabled = true;
                 this.lastCopiedContent = response.diff;
+                this.lastCopiedContentSource = 'diff';
                 this.updateStatus('✓ Diff copied', 'success');
 
                 setTimeout(() => {
@@ -567,6 +580,7 @@ class SidePanelController {
 
             if (response.success) {
                 this.lastCopiedContent = response.entries;
+                this.lastCopiedContentSource = 'network';
                 this.updateStatus(`✓ ${response.entries.length} requests copied`, 'success');
 
                 setTimeout(() => {
@@ -631,15 +645,20 @@ class SidePanelController {
             const prefs = await chrome.storage.sync.get(['aiProvider']);
             const provider = prefs.aiProvider || 'gemini';
 
-            // Get clipboard content
-            let context = '';
-            try {
-                context = await navigator.clipboard.readText();
-            } catch (e) {
-                context = this.lastCopiedContent || 'No content copied yet';
+            // Gebruik NOOIT een blinde clipboard-read. Alleen content die deze
+            // extensie zelf bewust heeft gekopieerd via scrape/clean/markdown-acties.
+            if (!this.lastCopiedContent) {
+                this.updateStatus('Kopieer eerst een component of DOM-snippet', 'error');
+                return;
             }
 
+            // Blokkeer expliciet content die uit "Copy API State" komt.
+            if (this.lastCopiedContentSource === 'apiState') {
+                this.updateStatus('API-state bevat mogelijk gevoelige data — niet naar AI gestuurd', 'error');
+                return;
+            }
 
+            let context = this.lastCopiedContent;
 
             // Truncate for URL safety (URLs have length limits)
             const maxLength = 4000;

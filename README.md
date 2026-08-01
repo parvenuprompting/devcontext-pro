@@ -1,6 +1,9 @@
-![DevContext Pro Banner](assets/banner.png)
-
 # DevContext Pro
+
+![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue?style=flat-square&logo=googlechrome)
+![Version](https://img.shields.io/badge/Version-1.3.0-emerald?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-purple?style=flat-square)
+![Security](https://img.shields.io/badge/Security-Data--Leak--Protected-brightgreen?style=flat-square)
 
 > Premium Chrome Extensie voor het extraheren van schone DOM-context en componentstructuren
 
@@ -79,9 +82,9 @@ DevContext Pro biedt een premium gebruikerservaring met:
 
 ## 🔐 Machtigingen
 
-- `activeTab`: Toegang tot het huidige actieve tabblad voor elementselectie
-- `storage`: Gebruikersvoorkeuren opslaan
-- `scripting`: Injecteer content scripts voor DOM-manipulatie
+- `storage`: Gebruikersvoorkeuren en instellingen lokaal opslaan
+- `sidePanel`: Weergave en besturing van de Side Panel interface
+- `host_permissions` (`<all_urls>`): Content script injectie voor elementselectie, DOM-extractie en opschoning op webpagina's
 
 ## 🛠️ Ontwikkeling
 
