@@ -59,6 +59,10 @@ class DevContextPro {
                 sendResponse({ success: true });
                 break;
 
+            case 'ping':
+                sendResponse({ success: true });
+                break;
+
             case 'startDiffMode':
                 this.startDiffMode(sendResponse);
                 break;

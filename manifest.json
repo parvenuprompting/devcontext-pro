@@ -6,7 +6,8 @@
   "author": "Tiëndo Welles",
   "permissions": [
     "storage",
-    "sidePanel"
+    "sidePanel",
+    "scripting"
   ],
   "host_permissions": [
     "<all_urls>"

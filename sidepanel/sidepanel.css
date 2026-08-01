@@ -467,3 +467,93 @@ details[open] summary {
 .status.loading .status-indicator {
   background-color: var(--warning);
 }
+
+/* History Section */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.history-item:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--text-secondary);
+}
+
+.history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  background-color: var(--primary);
+  color: white;
+}
+
+.history-badge.scrape { background-color: #6366f1; }
+.history-badge.cleanDOM { background-color: #10b981; }
+.history-badge.apiState { background-color: #f59e0b; }
+.history-badge.diff { background-color: #ec4899; }
+.history-badge.markdown { background-color: #8b5cf6; }
+.history-badge.color { background-color: #06b6d4; }
+.history-badge.network { background-color: #3b82f6; }
+
+.history-time {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.history-preview {
+  font-size: 11px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-copy-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.history-empty {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 12px;
+}

@@ -9,13 +9,14 @@ class SidePanelController {
         this.lastCopiedContentSource = '';
         this.multiSelectActive = false;
         this.diffModeActive = false;
+        this.history = [];
         this.init();
     }
 
     init() {
         this.loadPreferences();
-
         this.loadColorHistory();
+        this.loadHistory();
         this.attachEventListeners();
 
         // Listen for content copied from content scripts
@@ -23,6 +24,7 @@ class SidePanelController {
             if (request.action === 'contentCopied') {
                 this.lastCopiedContent = request.content;
                 this.lastCopiedContentSource = request.source || 'scrape';
+                this.addToHistory(request.content, request.source || 'scrape');
             }
         });
 
@@ -70,6 +72,10 @@ class SidePanelController {
             this.handleExportMarkdown();
         });
 
+
+        // History
+        const clearHistBtn = document.getElementById('clearHistory');
+        if (clearHistBtn) clearHistBtn.addEventListener('click', () => this.clearHistory());
 
         // Ask AI
         document.getElementById('askAI').addEventListener('click', () => this.handleAskAI());
@@ -146,6 +152,7 @@ class SidePanelController {
             await navigator.clipboard.writeText(text);
             this.lastCopiedContent = text;
             this.lastCopiedContentSource = source;
+            this.addToHistory(text, source);
         } catch (err) {
             console.error('Failed to copy:', err);
         }
@@ -262,6 +269,117 @@ class SidePanelController {
     // STATUS & UTILITIES
     // ============================================
 
+    async ensureContentScript(tabId) {
+        try {
+            await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+            return true;
+        } catch (err) {
+            // Content script is er niet → injecteren
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId },
+                    files: ['scripts/utils.js', 'scripts/content.js']
+                });
+                await chrome.scripting.insertCSS({
+                    target: { tabId },
+                    files: ['scripts/content.css']
+                });
+                // Korte delay zodat de script kan initialiseren
+                await new Promise(r => setTimeout(r, 100));
+                return true;
+            } catch (injectErr) {
+                console.error('Injectie mislukt:', injectErr);
+                return false;
+            }
+        }
+    }
+
+    // ============================================
+    // EXTRACTION HISTORY
+    // ============================================
+
+    async loadHistory() {
+        const { extractionHistory = [] } = await chrome.storage.local.get('extractionHistory');
+        this.history = extractionHistory;
+        this.renderHistory();
+    }
+
+    async addToHistory(content, source = 'scrape') {
+        if (!content) return;
+        const textContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+        const preview = textContent.replace(/\s+/g, ' ').trim().slice(0, 60);
+
+        const item = {
+            id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+            content: textContent,
+            source: source,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            preview: preview || 'Empty content'
+        };
+
+        // Remove duplicate if identical content
+        this.history = this.history.filter(h => h.content !== item.content);
+        this.history.unshift(item);
+
+        if (this.history.length > 12) {
+            this.history.pop();
+        }
+
+        await chrome.storage.local.set({ extractionHistory: this.history });
+        this.renderHistory();
+    }
+
+    renderHistory() {
+        const container = document.getElementById('historyList');
+        if (!container) return;
+
+        if (this.history.length === 0) {
+            container.innerHTML = '<div class="history-empty">Geen geschiedenis aanwezig</div>';
+            return;
+        }
+
+        container.innerHTML = this.history.map(item => `
+          <div class="history-item" data-id="${item.id}">
+            <div class="history-info">
+              <div class="history-header">
+                <span class="history-badge ${item.source}">${item.source}</span>
+                <span class="history-time">${item.timestamp}</span>
+              </div>
+              <div class="history-preview">${this.escapeHTML(item.preview)}</div>
+            </div>
+            <button class="history-copy-btn">Copy</button>
+          </div>
+        `).join('');
+
+        container.querySelectorAll('.history-item').forEach(el => {
+            el.addEventListener('click', async () => {
+                const id = el.dataset.id;
+                const item = this.history.find(h => h.id === id);
+                if (item) {
+                    await navigator.clipboard.writeText(item.content);
+                    this.lastCopiedContent = item.content;
+                    this.lastCopiedContentSource = item.source;
+                    this.updateStatus('Opnieuw gekopieerd', 'success');
+                    setTimeout(() => this.updateStatus('Ready', 'ready'), 1500);
+                }
+            });
+        });
+    }
+
+    async clearHistory() {
+        this.history = [];
+        await chrome.storage.local.set({ extractionHistory: [] });
+        this.renderHistory();
+        this.updateStatus('Geschiedenis gewist', 'ready');
+        setTimeout(() => this.updateStatus('Ready', 'ready'), 1500);
+    }
+
+    escapeHTML(str) {
+        return str.replace(/[&<>'"]/g,
+            tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+        );
+    }
+
     async getActiveTab() {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         return tab;
@@ -296,27 +414,27 @@ class SidePanelController {
             const tab = await this.getActiveTab();
             this.checkSystemPage(tab);
 
+            const ready = await this.ensureContentScript(tab.id);
+            if (!ready) {
+                this.updateStatus('Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.', 'error');
+                return;
+            }
+
             const prefs = await this.getAllPreferences();
 
-            try {
-                await chrome.tabs.sendMessage(tab.id, {
-                    action: 'startElementSelection',
-                    preferences: prefs
-                });
+            await chrome.tabs.sendMessage(tab.id, {
+                action: 'startElementSelection',
+                preferences: prefs
+            });
 
-                this.updateStatus('Click on any element to scrape', 'processing');
-
-                // DO NOT close side panel, unlike popup
-            } catch (e) {
-                if (e.message.includes('Receiving end does not exist')) {
-                    throw new Error('Refresh the page and try again.');
-                }
-                throw e;
-            }
+            this.updateStatus('Click on any element to scrape', 'processing');
 
         } catch (error) {
             console.error('Error in scrapeComponent:', error);
-            this.updateStatus(error.message, 'error');
+            const msg = error.message && error.message.includes('Receiving end')
+                ? 'Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.'
+                : error.message;
+            this.updateStatus(msg, 'error');
         }
     }
 
@@ -325,6 +443,14 @@ class SidePanelController {
             this.updateStatus('Cleaning DOM...', 'processing');
 
             const tab = await this.getActiveTab();
+            this.checkSystemPage(tab);
+
+            const ready = await this.ensureContentScript(tab.id);
+            if (!ready) {
+                this.updateStatus('Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.', 'error');
+                return;
+            }
+
             const prefs = await this.getAllPreferences();
 
             const response = await chrome.tabs.sendMessage(tab.id, {
@@ -332,16 +458,17 @@ class SidePanelController {
                 preferences: prefs
             });
 
-            if (response.success) {
+            if (response && response.success) {
                 await navigator.clipboard.writeText(response.cleanedHTML);
                 this.lastCopiedContent = response.cleanedHTML;
                 this.lastCopiedContentSource = 'cleanDOM';
+                this.addToHistory(response.cleanedHTML, 'cleanDOM');
 
                 chrome.tabs.sendMessage(tab.id, {
                     action: 'showNotification',
                     message: '✓ Full DOM copied to clipboard',
                     isError: false
-                });
+                }).catch(() => {});
 
                 this.updateStatus('✓ Copied to clipboard', 'success');
 
@@ -352,7 +479,10 @@ class SidePanelController {
 
         } catch (error) {
             console.error('Error in cleanDOM:', error);
-            this.updateStatus('Error: ' + error.message, 'error');
+            const msg = error.message && error.message.includes('Receiving end')
+                ? 'Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.'
+                : 'Error: ' + error.message;
+            this.updateStatus(msg, 'error');
         }
     }
 
@@ -361,6 +491,14 @@ class SidePanelController {
             this.updateStatus('Extracting API state...', 'processing');
 
             const tab = await this.getActiveTab();
+            this.checkSystemPage(tab);
+
+            const ready = await this.ensureContentScript(tab.id);
+            if (!ready) {
+                this.updateStatus('Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.', 'error');
+                return;
+            }
+
             const prefs = await this.getAllPreferences();
 
             const response = await chrome.tabs.sendMessage(tab.id, {
@@ -368,16 +506,17 @@ class SidePanelController {
                 preferences: prefs
             });
 
-            if (response.success) {
+            if (response && response.success) {
                 await navigator.clipboard.writeText(response.apiState);
                 this.lastCopiedContent = response.apiState;
                 this.lastCopiedContentSource = 'apiState';
+                this.addToHistory(response.apiState, 'apiState');
 
                 chrome.tabs.sendMessage(tab.id, {
                     action: 'showNotification',
                     message: '✓ API state copied to clipboard',
                     isError: false
-                });
+                }).catch(() => {});
 
                 this.updateStatus('✓ API state copied', 'success');
 
@@ -388,7 +527,10 @@ class SidePanelController {
 
         } catch (error) {
             console.error('Error in copyAPI:', error);
-            this.updateStatus('Error: ' + error.message, 'error');
+            const msg = error.message && error.message.includes('Receiving end')
+                ? 'Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.'
+                : 'Error: ' + error.message;
+            this.updateStatus(msg, 'error');
         }
     }
 
@@ -400,6 +542,12 @@ class SidePanelController {
         try {
             const tab = await this.getActiveTab();
             this.checkSystemPage(tab);
+
+            const ready = await this.ensureContentScript(tab.id);
+            if (!ready) {
+                this.updateStatus('Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.', 'error');
+                return;
+            }
 
             const prefs = await this.getAllPreferences();
             const newState = forceState !== undefined ? forceState : !this.multiSelectActive;
@@ -414,7 +562,6 @@ class SidePanelController {
                 document.getElementById('multiSelectMode').classList.add('active');
                 this.updateStatus('Multi-select mode active', 'processing');
 
-                // DO NOT close side panel
             } else {
                 await chrome.tabs.sendMessage(tab.id, {
                     action: 'stopMultiSelectMode'
@@ -427,7 +574,10 @@ class SidePanelController {
 
         } catch (error) {
             console.error('Error toggling multi-select:', error);
-            this.updateStatus(error.message, 'error');
+            const msg = error.message && error.message.includes('Receiving end')
+                ? 'Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.'
+                : error.message;
+            this.updateStatus(msg, 'error');
         }
     }
 
@@ -440,11 +590,17 @@ class SidePanelController {
             const tab = await this.getActiveTab();
             this.checkSystemPage(tab);
 
+            const ready = await this.ensureContentScript(tab.id);
+            if (!ready) {
+                this.updateStatus('Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.', 'error');
+                return;
+            }
+
             const response = await chrome.tabs.sendMessage(tab.id, {
                 action: 'startDiffMode'
             });
 
-            if (response.success) {
+            if (response && response.success) {
                 this.diffModeActive = true;
                 document.getElementById('startDiff').disabled = true;
                 document.getElementById('captureDiff').disabled = false;
@@ -453,24 +609,35 @@ class SidePanelController {
 
         } catch (error) {
             console.error('Error starting diff:', error);
-            this.updateStatus(error.message, 'error');
+            const msg = error.message && error.message.includes('Receiving end')
+                ? 'Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.'
+                : error.message;
+            this.updateStatus(msg, 'error');
         }
     }
 
     async handleCaptureDiff() {
         try {
             const tab = await this.getActiveTab();
+            this.checkSystemPage(tab);
+
+            const ready = await this.ensureContentScript(tab.id);
+            if (!ready) {
+                this.updateStatus('Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.', 'error');
+                return;
+            }
 
             const response = await chrome.tabs.sendMessage(tab.id, {
                 action: 'captureDiff'
             });
 
-            if (response.success) {
+            if (response && response.success) {
                 this.diffModeActive = false;
                 document.getElementById('startDiff').disabled = false;
                 document.getElementById('captureDiff').disabled = true;
                 this.lastCopiedContent = response.diff;
                 this.lastCopiedContentSource = 'diff';
+                this.addToHistory(response.diff, 'diff');
                 this.updateStatus('✓ Diff copied', 'success');
 
                 setTimeout(() => {
@@ -480,7 +647,10 @@ class SidePanelController {
 
         } catch (error) {
             console.error('Error capturing diff:', error);
-            this.updateStatus(error.message, 'error');
+            const msg = error.message && error.message.includes('Receiving end')
+                ? 'Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.'
+                : error.message;
+            this.updateStatus(msg, 'error');
         }
     }
 
@@ -495,9 +665,14 @@ class SidePanelController {
             const tab = await this.getActiveTab();
             this.checkSystemPage(tab);
 
+            const ready = await this.ensureContentScript(tab.id);
+            if (!ready) {
+                this.updateStatus('Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.', 'error');
+                return;
+            }
+
             const prefs = await this.getAllPreferences();
 
-            // First start selection, then generate interface
             await chrome.tabs.sendMessage(tab.id, {
                 action: 'startElementSelection',
                 preferences: prefs
@@ -505,11 +680,12 @@ class SidePanelController {
 
             this.updateStatus('Click element, output will be copied', 'processing');
 
-            // DO NOT close side panel
-
         } catch (error) {
             console.error('Error generating TS interface:', error);
-            this.updateStatus(error.message, 'error');
+            const msg = error.message && error.message.includes('Receiving end')
+                ? 'Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.'
+                : error.message;
+            this.updateStatus(msg, 'error');
         }
     }
 
@@ -518,36 +694,30 @@ class SidePanelController {
             this.updateStatus('Select element for CSS selector...', 'processing');
 
             const tab = await this.getActiveTab();
+            this.checkSystemPage(tab);
 
-            if (!tab || !tab.url) {
-                this.updateStatus('No active tab found', 'error');
-                return;
-            }
-
-            // Check if it's a valid web page
-            if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:')) {
-                this.updateStatus('Cannot run on system pages. Open a website first.', 'error');
+            const ready = await this.ensureContentScript(tab.id);
+            if (!ready) {
+                this.updateStatus('Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.', 'error');
                 return;
             }
 
             const prefs = await this.getAllPreferences();
 
-            // Start element selection for CSS selector
             await chrome.tabs.sendMessage(tab.id, {
                 action: 'startElementSelection',
                 preferences: prefs,
-                quickAction: 'cssSelector' // Tell content script to run CSS selector after selection
+                quickAction: 'cssSelector'
             });
 
             this.updateStatus('Click element to get CSS selector', 'processing');
 
         } catch (error) {
             console.error('Error copying selector:', error);
-            if (error.message && error.message.includes('Receiving end does not exist')) {
-                this.updateStatus('Please refresh the page and try again', 'error');
-            } else {
-                this.updateStatus('Failed to start selector', 'error');
-            }
+            const msg = error.message && error.message.includes('Receiving end')
+                ? 'Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.'
+                : 'Failed to start selector';
+            this.updateStatus(msg, 'error');
         }
     }
 
@@ -556,15 +726,11 @@ class SidePanelController {
             this.updateStatus('Capturing network activity...', 'processing');
 
             const tab = await this.getActiveTab();
+            this.checkSystemPage(tab);
 
-            if (!tab || !tab.url) {
-                this.updateStatus('No active tab found', 'error');
-                return;
-            }
-
-            // Check if it's a valid web page
-            if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:')) {
-                this.updateStatus('Cannot run on system pages. Open a website first.', 'error');
+            const ready = await this.ensureContentScript(tab.id);
+            if (!ready) {
+                this.updateStatus('Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.', 'error');
                 return;
             }
 
@@ -572,9 +738,11 @@ class SidePanelController {
                 action: 'getNetworkActivity'
             });
 
-            if (response.success) {
-                this.lastCopiedContent = response.entries;
+            if (response && response.success) {
+                const networkContent = JSON.stringify(response.entries, null, 2);
+                this.lastCopiedContent = networkContent;
                 this.lastCopiedContentSource = 'network';
+                this.addToHistory(networkContent, 'network');
                 this.updateStatus(`✓ ${response.entries.length} requests copied`, 'success');
 
                 setTimeout(() => {
@@ -584,11 +752,10 @@ class SidePanelController {
 
         } catch (error) {
             console.error('Error capturing network:', error);
-            if (error.message && error.message.includes('Receiving end does not exist')) {
-                this.updateStatus('Please refresh the page and try again', 'error');
-            } else {
-                this.updateStatus(error.message || 'Network capture failed', 'error');
-            }
+            const msg = error.message && error.message.includes('Receiving end')
+                ? 'Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.'
+                : (error.message || 'Network capture failed');
+            this.updateStatus(msg, 'error');
         }
     }
 
@@ -597,36 +764,30 @@ class SidePanelController {
             this.updateStatus('Select element for markdown export...', 'processing');
 
             const tab = await this.getActiveTab();
+            this.checkSystemPage(tab);
 
-            if (!tab || !tab.url) {
-                this.updateStatus('No active tab found', 'error');
-                return;
-            }
-
-            // Check if it's a valid web page
-            if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:')) {
-                this.updateStatus('Cannot run on system pages. Open a website first.', 'error');
+            const ready = await this.ensureContentScript(tab.id);
+            if (!ready) {
+                this.updateStatus('Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.', 'error');
                 return;
             }
 
             const prefs = await this.getAllPreferences();
 
-            // Start element selection for markdown export
             await chrome.tabs.sendMessage(tab.id, {
                 action: 'startElementSelection',
                 preferences: prefs,
-                quickAction: 'markdown' // Tell content script to run markdown export after selection
+                quickAction: 'markdown'
             });
 
             this.updateStatus('Click element to export as markdown', 'processing');
 
         } catch (error) {
             console.error('Error exporting markdown:', error);
-            if (error.message && error.message.includes('Receiving end does not exist')) {
-                this.updateStatus('Please refresh the page and try again', 'error');
-            } else {
-                this.updateStatus('Failed to start markdown export', 'error');
-            }
+            const msg = error.message && error.message.includes('Receiving end')
+                ? 'Kan niet op deze pagina draaien. Probeer de pagina te vernieuwen.'
+                : 'Failed to start markdown export';
+            this.updateStatus(msg, 'error');
         }
     }
 
